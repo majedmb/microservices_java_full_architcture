@@ -1,0 +1,137 @@
+package org.mbtech.security.config;
+/*
+import jakarta.servlet.Filter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+public class SecurityConfig  {
+    @Value("${eureka.username}") // env vars
+    private String username;
+    @Value("${eureka.password}")
+    private String password;
+  /* @Override
+    public void configure(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
+        authenticationManagerBuilder.inMemoryAuthentication()
+                .passwordEncoder(NoOpPasswordEncoder.getInstance())
+                .withUser(username).password(password)
+                .authorities("USER");
+    }*/
+
+
+
+
+    // User Creation
+    @Bean
+    public InMemoryUserDetailsManager userDetailsService(PasswordEncoder encoder){
+
+        // InMemoryUserDetailsManager
+   /*     UserDetails admin = User.withUsername(username)
+                .password(encoder.encode(password))
+                .roles("ADMIN", "USER")
+                .build();*/
+
+        UserDetails user = User.withUsername(username)
+                .password(encoder.encode(password))
+                .roles("USER")
+                .build();
+
+        return new InMemoryUserDetailsManager(user);
+    }
+
+    // Configuring HttpSecurity
+   /* @Bean
+    public HttpBasicConfigurer<HttpSecurity> securityFilterChain(HttpSecurity http) throws Exception {
+        return http.csrf().disable()
+               // .authorizeHttpRequests()
+                //.requestMatchers("/auth/welcome").permitAll()
+               // .and()
+              //  .authorizeHttpRequests().requestMatchers("/eureka/").authenticated()
+              //  .and().formLogin()
+                .authorizeHttpRequests()
+                .anyRequest()
+                .authenticated()
+                .and()
+                .httpBasic();
+                //.and().build();
+
+
+    } */
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.csrf(csrf -> csrf.disable())
+                //.exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth ->
+                        auth.requestMatchers("/api/auth/**").permitAll()
+                                .requestMatchers("/api/test/**").permitAll()
+                                .anyRequest().authenticated()
+                );
+
+        http.authenticationProvider(authenticationProvider());
+
+        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+
+
+
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+
+        //authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+
+        return authProvider;
+    }
+    @Bean
+    public Filter authenticationJwtTokenFilter() {
+        return new AuthTokenFilter();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
+    }
+
+    // Password Encoding
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
+    }
+
+
+
+
+
+
+ /*  @Override
+    public void configure(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity.csrf().disable()
+                .authorizeRequests().anyRequest()
+                .authenticated()
+                .and()
+                .httpBasic();
+    }*/
+
+}
